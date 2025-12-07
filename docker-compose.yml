@@ -1,0 +1,65 @@
+services:
+  app:
+    container_name: symfony-app
+    build:
+      context: docker/php-apache
+      args:
+        UID: $U_ID
+    volumes:
+      - ./src/:/var/www/html
+    environment:
+      XDEBUG_MODE: debug
+      XDEBUG_CLIENT_HOST: ${XDEBUG_CLIENT_HOST:-172.17.0.1}
+      XDEBUG_CLIENT_PORT: ${XDEBUG_CLIENT_PORT:-9003}
+      PHP_IDE_CONFIG: serverName=server
+      MAILER_DSN: smtp://mailhog:1025
+    ports:
+      - '${APP_PORT:-1500}:80'
+    networks:
+      - symfony-network
+    depends_on:
+      mysql:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  mysql:
+    container_name: symfony-mysql
+    build:
+      context: ./docker/database
+    ports:
+      - '${MYSQL_PORT:-1000}:3306'
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-project_database}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - symfony-network
+    command: ['mysqld', '--character-set-server=utf8mb4', '--collation-server=utf8mb4_unicode_ci', '--sql_mode=']
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  mailhog:
+    container_name: symfony-mailhog
+    image: mailhog/mailhog:latest
+    ports:
+      - '${MAILHOG_WEB_PORT:-8025}:8025'
+      - '${MAILHOG_SMTP_PORT:-1025}:1025'
+    networks:
+      - symfony-network
+
+networks:
+  symfony-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
