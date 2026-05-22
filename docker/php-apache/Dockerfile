@@ -25,8 +25,8 @@ RUN apt update \
     && docker-php-ext-install pdo_mysql \
     # XDEBUG and APCu
     && pecl install xdebug apcu \
-    # enable Docker extensions
-    && docker-php-ext-enable --ini-name 05-opcache.ini opcache xdebug apcu \
+    # enable extensiones instaladas por pecl (opcache ya viene habilitado en la imagen base)
+    && docker-php-ext-enable --ini-name 05-extensions.ini xdebug apcu \
     # Install Python and pip
     && apt install -y python3 python3-pip \
     # Clean up
