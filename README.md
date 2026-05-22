@@ -12,8 +12,8 @@ Entorno Docker listo para desarrollar aplicaciones Symfony con PHP 8.2, Apache, 
 
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/tu-usuario/docker-symfony-boilerplate.git
-cd docker-symfony-boilerplate
+git clone git@github.com:walteru/Boilerplate-Docker-Symfony.git
+cd Boilerplate-Docker-Symfony
 
 # 2. Copiar variables de entorno
 cp .env.example .env
