@@ -23,6 +23,8 @@ make build
 make start
 
 # 4. Verificar funcionamiento
+#    src/ solo trae un .gitkeep, asi que public/ todavia no existe
+mkdir -p src/public
 echo "<?php phpinfo();" > src/public/index.php
 # Abrir http://localhost:1500
 ```
@@ -197,6 +199,14 @@ make clean-all   # Eliminar todo incluyendo imágenes
 ```
 
 ## Configuración de tu Proyecto Symfony
+
+Vacía `src/` antes de empezar: tanto `symfony new` como `git clone` requieren un
+directorio vacío, y el `.gitkeep` que versiona la carpeta (más el `index.php` de
+prueba, si lo creaste) cuenta como contenido.
+
+```bash
+rm -rf src/public src/.gitkeep
+```
 
 ### Opción 1: Clonar proyecto existente
 
