@@ -1,10 +1,12 @@
 services:
   app:
-    container_name: symfony-app
+    container_name: ${PROJECT_NAME:-symfony}-app
     build:
       context: docker/php-apache
       args:
-        UID: $U_ID
+        # El Makefile exporta U_ID=$(id -u). El default evita el warning de
+        # compose en comandos que no pasan por make (ps, logs, config).
+        UID: ${U_ID:-1000}
     volumes:
       - ./src/:/var/www/html
     environment:
@@ -21,14 +23,16 @@ services:
       mysql:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost/"]
+      # Sin -f: basta con que Apache responda. Un src/ vacio devuelve 404 y
+      # no debe marcar el contenedor como unhealthy.
+      test: ["CMD", "curl", "-sS", "-o", "/dev/null", "http://localhost/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
 
   mysql:
-    container_name: symfony-mysql
+    container_name: ${PROJECT_NAME:-symfony}-mysql
     build:
       context: ./docker/database
     ports:
@@ -49,8 +53,8 @@ services:
       start_period: 30s
 
   mailhog:
-    container_name: symfony-mailhog
-    image: mailhog/mailhog:latest
+    container_name: ${PROJECT_NAME:-symfony}-mailhog
+    image: mailhog/mailhog:v1.0.1
     ports:
       - '${MAILHOG_WEB_PORT:-8025}:8025'
       - '${MAILHOG_SMTP_PORT:-1025}:1025'

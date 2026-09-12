@@ -28,6 +28,12 @@ src/var/
 # Archivos de build
 src/public/build/
 
+# Dumps de base de datos: `make restore-db` espera
+# docker/database/project_database.sql, que es tuyo y puede contener datos
+# reales. Solo se versiona el script de inicializacion.
+docker/database/*.sql
+!docker/database/databases.sql
+
 # Archivos temporales
 *.tmp
 *.temp

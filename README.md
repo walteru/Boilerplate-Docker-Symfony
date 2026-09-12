@@ -1,12 +1,12 @@
 # Docker Symfony Boilerplate
 
 ![Docker](https://img.shields.io/badge/Docker-2496ED?style=flat&logo=docker&logoColor=white)
-![PHP](https://img.shields.io/badge/PHP-8.2-777BB4?style=flat&logo=php&logoColor=white)
+![PHP](https://img.shields.io/badge/PHP-8.3-777BB4?style=flat&logo=php&logoColor=white)
 ![Symfony](https://img.shields.io/badge/Symfony-000000?style=flat&logo=symfony&logoColor=white)
-![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?style=flat&logo=mysql&logoColor=white)
+![MySQL](https://img.shields.io/badge/MySQL-8.4-4479A1?style=flat&logo=mysql&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-Entorno Docker listo para desarrollar aplicaciones Symfony con PHP 8.2, Apache, MySQL 8.0 y MailHog.
+Entorno Docker listo para desarrollar aplicaciones Symfony con PHP 8.3, Apache, MySQL 8.4 y MailHog.
 
 ## Inicio Rápido
 
@@ -42,10 +42,10 @@ docker-symfony-boilerplate/
 │   └── ISSUE_TEMPLATE/      # Templates para issues
 ├── docker/
 │   ├── database/
-│   │   ├── Dockerfile       # Imagen MySQL 8.0
+│   │   ├── Dockerfile       # Imagen MySQL 8.4
 │   │   └── databases.sql    # Script inicialización BD
 │   └── php-apache/
-│       ├── Dockerfile       # Imagen PHP 8.2 + Apache
+│       ├── Dockerfile       # Imagen PHP 8.3 + Apache
 │       ├── default.conf     # VirtualHost Apache
 │       ├── php.ini          # Configuración PHP
 │       └── xdebug.ini       # Configuración Xdebug 3
@@ -65,8 +65,8 @@ docker-symfony-boilerplate/
 
 | Servicio | Puerto | Descripción |
 |----------|--------|-------------|
-| **App** | `localhost:1500` | PHP 8.2 + Apache |
-| **MySQL** | `localhost:1000` | MySQL 8.0.43 |
+| **App** | `localhost:1500` | PHP 8.3 + Apache |
+| **MySQL** | `localhost:1000` | MySQL 8.4.11 |
 | **MailHog** | `localhost:8025` | Interfaz web de correos |
 | **SMTP** | `localhost:1025` | Servidor SMTP para pruebas |
 
@@ -75,6 +75,9 @@ docker-symfony-boilerplate/
 Copia `.env.example` a `.env` y ajusta según tu entorno:
 
 ```env
+# Prefijo de los contenedores
+PROJECT_NAME=symfony
+
 # Puertos
 APP_PORT=1500
 MYSQL_PORT=1000
@@ -89,6 +92,24 @@ MYSQL_DATABASE=project_database
 XDEBUG_CLIENT_HOST=172.17.0.1
 XDEBUG_CLIENT_PORT=9003
 ```
+
+### Uso en Varios Proyectos de la Misma Máquina
+
+Los nombres de contenedor derivan de `PROJECT_NAME` (`symfony` por defecto:
+`symfony-app`, `symfony-mysql`, `symfony-mailhog`). Si levantas el boilerplate
+para más de un proyecto a la vez, asigna un `PROJECT_NAME` distinto en cada
+`.env` y puertos libres; de lo contrario Docker aborta con un conflicto de
+nombre de contenedor.
+
+```env
+PROJECT_NAME=mi-proyecto
+APP_PORT=1501
+MYSQL_PORT=1001
+MAILHOG_WEB_PORT=8026
+MAILHOG_SMTP_PORT=1026
+```
+
+`make check` muestra el UID y los nombres de contenedor resueltos.
 
 ### Configuración de Xdebug por Sistema Operativo
 
@@ -110,6 +131,7 @@ make down        # Detener y eliminar contenedores
 make restart     # Reiniciar contenedores
 make rebuild     # Reconstruir todo desde cero
 make status      # Ver estado de contenedores
+make check       # Ver UID y nombres de contenedor resueltos
 ```
 
 ### Logs
@@ -148,12 +170,24 @@ make schema-validate  # Validar esquema Doctrine
 make schema-update    # Actualizar esquema BD
 ```
 
+`make restore-db` borra y recrea `MYSQL_DATABASE` y luego importa
+`docker/database/project_database.sql`. Ese dump es tuyo y no viaja en el repo:
+cópialo a esa ruta antes de ejecutar el comando. Los `.sql` de esa carpeta están
+ignorados por git (salvo `databases.sql`) para no publicar datos reales.
+
 ### Tests
 
 ```bash
 make tests           # Ejecutar PHPUnit
-make tests-coverage  # Tests con cobertura HTML
+make tests-coverage  # Tests con cobertura HTML en src/var/coverage
 ```
+
+`make tests` usa `bin/phpunit` si el proyecto lo tiene (es lo que instalan las
+recetas actuales de Symfony) y cae a `vendor/bin/phpunit` o
+`vendor/bin/simple-phpunit` si no. No fuerza un archivo de configuración: PHPUnit
+descubre el suyo (`phpunit.xml`, `phpunit.dist.xml` o `phpunit.xml.dist`).
+`make tests-coverage` ejecuta con `XDEBUG_MODE=coverage`, necesario para que
+Xdebug genere cobertura.
 
 ### Limpieza
 
@@ -186,7 +220,7 @@ exit
 En tu archivo `src/.env` o `src/.env.local`:
 
 ```env
-DATABASE_URL="mysql://root:root@mysql:3306/project_database?serverVersion=8.0"
+DATABASE_URL="mysql://root:root@mysql:3306/project_database?serverVersion=8.4.0&charset=utf8mb4"
 ```
 
 ### Configuración de Correo en Symfony
@@ -216,7 +250,7 @@ Después de cambiar el valor, reinicia los contenedores: `make restart`
 
 ![Remote Explorer](docs/images/remote.png)
 
-3. Seleccionar el contenedor `symfony-app` y hacer clic en **Attach**
+3. Seleccionar el contenedor `symfony-app` (o `<PROJECT_NAME>-app`, si lo cambiaste) y hacer clic en **Attach**
 
 ![Attach to Container](docs/images/add_remote.png)
 
@@ -264,10 +298,10 @@ Una vez conectado al contenedor, instalar la extensión **PHP Debug by Xdebug**:
 
 ## Software Incluido en Contenedor PHP
 
-- PHP 8.2 con extensiones: intl, pdo, gd, zip, pdo_mysql, opcache, xdebug, apcu
+- PHP 8.3 con extensiones: intl, pdo, gd, zip, pdo_mysql, opcache, xdebug, apcu
 - Apache 2.4 con mod_rewrite
 - Composer (última versión)
-- Node.js 18.x con npm y Yarn
+- Node.js 22.x (LTS) con npm y Yarn
 - Symfony CLI
 - Git
 

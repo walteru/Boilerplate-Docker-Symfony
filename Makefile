@@ -3,10 +3,17 @@
 
 UID = $(shell id -u)
 
+# Prefijo de los contenedores: se toma de PROJECT_NAME en .env; si no esta
+# definido, se usa "symfony" (mismo valor que el default de docker-compose.yml).
+PROJECT_NAME := $(shell grep -E '^[[:space:]]*PROJECT_NAME[[:space:]]*=' .env 2>/dev/null | tail -n1 | cut -d= -f2- | tr -d "[:space:]\"'")
+ifeq ($(strip $(PROJECT_NAME)),)
+PROJECT_NAME := symfony
+endif
+
 # Nombres de contenedores
-DOCKER_APP = symfony-app
-DOCKER_DB = symfony-mysql
-DOCKER_MAIL = symfony-mailhog
+DOCKER_APP = $(PROJECT_NAME)-app
+DOCKER_DB = $(PROJECT_NAME)-mysql
+DOCKER_MAIL = $(PROJECT_NAME)-mailhog
 
 .DEFAULT_GOAL := help
 
@@ -20,8 +27,10 @@ help: ## Mostrar esta ayuda
 	@echo 'Comandos disponibles:'
 	@egrep '^(.+)\:\ ##\ (.+)' ${MAKEFILE_LIST} | column -t -c 2 -s ':#'
 
-check: ## Verificar UID actual
+check: ## Verificar UID y nombres de contenedores
 	@echo "UID: ${UID}"
+	@echo "PROJECT_NAME: ${PROJECT_NAME}"
+	@echo "Contenedores: ${DOCKER_APP}, ${DOCKER_DB}, ${DOCKER_MAIL}"
 
 # =====================================
 # Gestión de Contenedores
@@ -116,12 +125,17 @@ schema-update: ## Actualizar esquema de BD (solo desarrollo)
 # Tests
 # =====================================
 
-.PHONY: tests
-tests: ## Ejecutar tests con PHPUnit
-	U_ID=${UID} docker exec --user ${UID} ${DOCKER_APP} vendor/bin/simple-phpunit -c phpunit.xml.dist
+# Binario de PHPUnit: las recetas actuales de Symfony instalan bin/phpunit; se
+# mantiene el fallback a vendor/bin para proyectos que no lo tengan. Sin -c, para
+# que PHPUnit descubra solo su config (phpunit.xml, phpunit.dist.xml o phpunit.xml.dist).
+PHPUNIT_BIN = $$(if [ -x bin/phpunit ]; then echo bin/phpunit; elif [ -x vendor/bin/phpunit ]; then echo vendor/bin/phpunit; else echo vendor/bin/simple-phpunit; fi)
 
-tests-coverage: ## Ejecutar tests con cobertura
-	U_ID=${UID} docker exec --user ${UID} ${DOCKER_APP} vendor/bin/simple-phpunit -c phpunit.xml.dist --coverage-html var/coverage
+.PHONY: tests tests-coverage
+tests: ## Ejecutar tests con PHPUnit
+	U_ID=${UID} docker exec --user ${UID} ${DOCKER_APP} sh -c '$(PHPUNIT_BIN)'
+
+tests-coverage: ## Ejecutar tests con cobertura (requiere XDEBUG_MODE=coverage)
+	U_ID=${UID} docker exec --user ${UID} -e XDEBUG_MODE=coverage ${DOCKER_APP} sh -c '$(PHPUNIT_BIN) --coverage-html var/coverage'
 
 # =====================================
 # Limpieza

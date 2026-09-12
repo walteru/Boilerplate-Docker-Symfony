@@ -1,5 +1,9 @@
-FROM php:8.2-apache
+FROM php:8.3-apache
 ARG UID
+
+# ARG y no ENV: evita instalaciones interactivas durante el build sin dejar la
+# variable fijada en la imagen final.
+ARG DEBIAN_FRONTEND=noninteractive
 
 # Create user with same permissions as host and some useful stuff
 RUN adduser -u ${UID} --disabled-password --gecos "" appuser
@@ -16,10 +20,10 @@ RUN echo "alias dsu='sf doctrine:schema:update --dump-sql'" >> /home/appuser/.ba
 RUN echo "alias cc='sf cache:clear'" >> /home/appuser/.bashrc
 
 # Install packages and PHP extensions
-RUN apt update \
+RUN apt-get update \
     # common libraries and extensions
-    && apt install -y git acl openssl openssh-client wget zip \
-    && apt install -y libpng-dev zlib1g-dev libzip-dev libxml2-dev libicu-dev \
+    && apt-get install -y --no-install-recommends git acl openssl openssh-client wget zip \
+    && apt-get install -y --no-install-recommends libpng-dev zlib1g-dev libzip-dev libxml2-dev libicu-dev \
     && docker-php-ext-install intl pdo gd zip \
     # for MySQL
     && docker-php-ext-install pdo_mysql \
@@ -28,7 +32,7 @@ RUN apt update \
     # enable extensiones instaladas por pecl (opcache ya viene habilitado en la imagen base)
     && docker-php-ext-enable --ini-name 05-extensions.ini xdebug apcu \
     # Install Python and pip
-    && apt install -y python3 python3-pip \
+    && apt-get install -y --no-install-recommends python3 python3-pip \
     # Clean up
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
@@ -37,13 +41,15 @@ RUN curl https://getcomposer.org/composer.phar -o /usr/bin/composer && chmod +x 
 RUN composer self-update
 
 # Instalar Node.js y Yarn
-RUN curl -sL https://deb.nodesource.com/setup_18.x | bash - \
-    && apt-get install -y nodejs \
-    && npm install --global yarn
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+    && apt-get install -y --no-install-recommends nodejs \
+    && npm install --global yarn \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 ## Install Symfony binary
-RUN curl -1sLf 'https://dl.cloudsmith.io/public/symfony/stable/setup.deb.sh' | bash
-RUN apt install symfony-cli
+RUN curl -1sLf 'https://dl.cloudsmith.io/public/symfony/stable/setup.deb.sh' | bash \
+    && apt-get install -y --no-install-recommends symfony-cli \
+    && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 RUN mkdir -p /var/www/html
 
